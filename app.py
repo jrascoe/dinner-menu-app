@@ -62,11 +62,11 @@ def generate_full_recipe(meal_summary):
     return model.generate_content(prompt).text
 
 # --- 4. APP CONFIGURATION ---
-st.set_page_config(page_title="Dinner App", page_icon="🥘", layout="centered")
+st.set_page_config(page_title="Dinner App", page_icon="🍽️", layout="centered")
 
 # --- 5. MAIN INTERFACE ---
 
-st.title("🥘 Dinner Plans")
+st.title("🍽️ Dinner Plans")
 
 # --- SECTION A: SETUP (Stacked at Top) ---
 # We use an expander that defaults to expanded=True so it's visible on load
