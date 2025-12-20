@@ -49,6 +49,18 @@ def generate_week_plan(user_schedule, special_requests):
         st.error(f"Planning Error: {e}")
         return {}
 
+def generate_single_meal_fix(day, situation):
+    """Regenerates just ONE day's meal."""
+    prompt = f"""
+    Create a single PESCATARIAN dinner idea for {day}.
+    Logistics: {situation}.
+    Format: Meal Name | Prep Time | Why it fits.
+    """
+    try:
+        return model.generate_content(prompt).text
+    except:
+        return "Error generating meal."
+
 def generate_master_shopping_list(plan_json):
     prompt = f"""
     Look at this meal plan: {json.dumps(plan_json)}
@@ -68,7 +80,7 @@ st.set_page_config(page_title="Dinner App", page_icon="🍽️", layout="centere
 
 st.title("🍽️ Dinner Plans")
 
-# --- SECTION A: SETUP (Stacked at Top) ---
+# --- SECTION A: SETUP ---
 with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
     st.info("Diet: **Pescatarian**")
     
@@ -114,7 +126,7 @@ if st.session_state.weekly_plan:
         with st.spinner("Writing list..."):
             st.session_state.shopping_list = generate_master_shopping_list(st.session_state.weekly_plan)
 
-# --- SECTION C: RESULTS (Vertical Feed) ---
+# --- SECTION C: RESULTS ---
 
 # SHOPPING LIST DRAWER
 if st.session_state.shopping_list:
@@ -141,17 +153,32 @@ if st.session_state.weekly_plan:
             st.caption(f"Strategy: {user_schedule.get(day)}")
             st.markdown(f"**{current_meal}**")
             
+            # CONTROL ROW (Swap | Recipe)
+            col_swap, col_recipe = st.columns(2)
+            
+            # 1. SWAP BUTTON
+            if col_swap.button("🔄 Swap", key=f"swap_{day}", use_container_width=True):
+                # Clear recipe if existed
+                if day in st.session_state.recipes: 
+                    del st.session_state.recipes[day]
+                # Regenerate just this day
+                with st.spinner("Rethinking..."):
+                    st.session_state.weekly_plan[day] = generate_single_meal_fix(day, user_schedule.get(day))
+                    st.rerun()
+
+            # 2. RECIPE BUTTON
+            # If no recipe loaded, show "Get Recipe"
             if day not in st.session_state.recipes:
-                if st.button(f"👩‍🍳 Get Recipe", key=f"btn_{day}", use_container_width=True):
+                if col_recipe.button(f"👩‍🍳 Recipe", key=f"btn_{day}", use_container_width=True):
                     st.session_state.recipes[day] = generate_full_recipe(current_meal)
                     st.rerun()
-            else:
+            
+            # 3. RECIPE DISPLAY (If loaded)
+            if day in st.session_state.recipes:
                 st.markdown("---")
                 st.markdown("##### 📖 Recipe")
                 st.markdown(st.session_state.recipes[day])
                 
-                # --- THE NEW COPY FEATURE ---
                 st.divider()
-                st.caption("👇 Tap icon in top-right to copy recipe")
-                # We use st.code with language=None so it treats it as plain text
+                st.caption("👇 Tap icon to copy:")
                 st.code(st.session_state.recipes[day], language=None)
