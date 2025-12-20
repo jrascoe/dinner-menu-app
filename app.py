@@ -1,72 +1,120 @@
 import streamlit as st
 import google.generativeai as genai
 
-# --- 1. SETUP & CONFIGURATION ---
+# --- 1. SETUP ---
+# Grab the key from the "Safe Box" (Secrets)
+# Ensure your .streamlit/secrets.toml file has GOOGLE_API_KEY defined
+if "GOOGLE_API_KEY" in st.secrets:
+    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+else:
+    st.error("Missing API Key in secrets.toml")
+    st.stop()
 
-# PASTE YOUR API KEY HERE (Keep the quotes!)
-# In a real deployed app, we would hide this, but for running locally this works.
-GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] 
-
-# Configure the AI
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
-# --- 2. THE "BRAIN": YOUR PARAMETERS ---
-# This is the secret sauce. The user won't see this, but the AI will obey it.
-SYSTEM_INSTRUCTIONS = """
-You are a specialized personal chef for a busy professional couple. 
-You must create a dinner menu based on the ingredients provided.
+# --- 2. SESSION STATE (The Memory) ---
+# This holds the menu so it doesn't vanish when you click buttons
+if 'weekly_plan' not in st.session_state:
+    st.session_state.weekly_plan = {}
 
-STRICT PARAMETERS TO FOLLOW:
-1. HEALTH: The meal must be generally healthy. Avoid deep-frying or heavy creams.
-2. TIME: Total prep + cook time must be under 45 minutes.
-3. PREFERENCE: If multiple options are possible, prioritize Mediterranean or Asian flavors.
-4. FORMAT: 
-   - Name of Dish
-   - Estimated Time
-   - Step-by-step instructions (keep them brief)
-   - A "Missing Items" list if the user needs to buy 1-2 small things (like a lemon or herbs).
-   
-If the ingredients provided are truly impossible to make a meal with (e.g., just "ketchup and ice"), politely suggest ordering takeout.
-"""
+# --- 3. CONFIGURATION ---
+st.set_page_config(page_title="Weekly Logistics Planner", page_icon="📅", layout="wide")
 
-# --- 3. THE USER INTERFACE ---
-st.set_page_config(page_title="The Dinner Decider", page_icon="🍽️")
+st.title("📅 The Week Ahead")
+st.markdown("""
+**The Philosophy:** Don't plan based on what you *crave*. Plan based on *time and logistics*.
+* **The Sprint:** Quick, 15-20 min meals. Everyone eats now.
+* **The Relay:** Slow cooker or room-temp meals. People eat at different times.
+* **The Leisure:** You have time to enjoy cooking (e.g., Sunday dinner).
+""")
 
-st.title("🍽️ What's for Dinner?")
-st.write("Enter the ingredients you have on hand. I'll handle the rest.")
+# --- 4. SIDEBAR SETTINGS ---
+with st.sidebar:
+    st.header("⚙️ Global Settings")
+    st.info("🔒 Diet is hard-coded to: **Pescatarian**")
+    
+    # We store the "situations" for each day here
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    user_schedule = {}
+    
+    st.subheader("Schedule Your Week")
+    for day in days:
+        user_schedule[day] = st.selectbox(
+            f"{day}'s Vibe:",
+            options=["The Sprint (Quick)", "The Relay (Flexible Time)", "The Leisure (Complex)", "Takeout/Leftovers"],
+            key=f"select_{day}"
+        )
 
-# Two columns for a cleaner layout
-col1, col2 = st.columns(2)
+# --- 5. HELPER FUNCTIONS ---
 
-with col1:
-    ingredients = st.text_area(
-        "Ingredients available:", 
-        placeholder="e.g., Chicken breast, spinach, half a lemon, rice...",
-        height=150
-    )
+def generate_single_meal(day, situation):
+    """Asks AI for a single meal based on the specific situation."""
+    
+    # Hidden Chef Logic
+    system_prompt = f"""
+    You are a meal planner for a busy PESCATARIAN family.
+    
+    TASK: Create a dinner idea for {day}.
+    CONTEXT: The logistics for this day are: '{situation}'.
+    
+    DEFINITIONS:
+    - "The Sprint": Must take < 20 mins. High heat, stir fry, tacos, sheet pan.
+    - "The Relay": Must allow staggered eating. Casseroles, Slow Cooker, Soup, or Salad that doesn't wilt.
+    - "The Leisure": Complex, multi-step cooking is allowed.
+    
+    OUTPUT FORMAT:
+    Return ONLY the meal details in this format:
+    **Meal Name**
+    *Time:* [Prep Time]
+    *Why it fits:* [One sentence explanation]
+    *Key Ingredients:* [List of 3-5 main items]
+    """
+    
+    try:
+        response = model.generate_content(system_prompt)
+        return response.text
+    except Exception as e:
+        return f"Error: {e}"
 
-with col2:
-    st.info("💡 **Tip:** You can also list leftovers or 'half a jar of salsa'.")
-    dietary_override = st.checkbox("Vegetarian option only?", value=False)
+# --- 6. MAIN INTERFACE ---
 
-# --- 4. THE LOGIC ---
-if st.button("Generate Menu", type="primary"):
-    if not ingredients:
-        st.warning("Please enter at least one ingredient.")
-    else:
-        # We build the final prompt by combining your secret rules + user input
-        final_prompt = f"{SYSTEM_INSTRUCTIONS}\n"
+# The Big "Generate Week" Button
+if st.button("🚀 Plan My Whole Week", type="primary"):
+    with st.spinner("Chef is reviewing your calendar..."):
+        for day in days:
+            situation = user_schedule[day]
+            if "Takeout" in situation:
+                st.session_state.weekly_plan[day] = "🥡 **Takeout / Leftovers Night**\n*Relax, you earned it.*"
+            else:
+                st.session_state.weekly_plan[day] = generate_single_meal(day, situation)
+
+# Display the Cards
+if st.session_state.weekly_plan:
+    st.divider()
+    
+    # Create columns for a grid layout (3 columns per row looks good)
+    cols = st.columns(3)
+    
+    for i, day in enumerate(days):
+        # Determine which column to place this card in
+        col = cols[i % 3]
         
-        if dietary_override:
-            final_prompt += "\nUSER NOTE: The user requested this meal be Vegetarian, even if meat was listed.\n"
-            
-        final_prompt += f"\nUSER INGREDIENTS: {ingredients}"
-
-        with st.spinner('Chef is thinking...'):
-            try:
-                response = model.generate_content(final_prompt)
-                st.success("Here is your menu:")
-                st.markdown(response.text)
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+        with col:
+            # Check if we have a plan for this day
+            if day in st.session_state.weekly_plan:
+                current_meal = st.session_state.weekly_plan[day]
+                
+                # THE CARD UI
+                container = st.container(border=True)
+                container.subheader(f"{day}")
+                container.caption(f"Logistics: {user_schedule[day]}")
+                container.markdown(current_meal)
+                
+                # THE "REROLL" BUTTON
+                # If the user clicks this, we ONLY regenerate this specific day
+                if container.button(f"🔄 Change {day}", key=f"btn_reroll_{day}"):
+                    with st.spinner(f"Rethinking {day}..."):
+                        new_meal = generate_single_meal(day, user_schedule[day])
+                        st.session_state.weekly_plan[day] = new_meal
+                        st.rerun() # Refresh the page to show the new meal
