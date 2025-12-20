@@ -9,7 +9,7 @@ GOOGLE_API_KEY = "AIzaSyASNdWnyVy3P5YRvOtkOBtFwpoFrRIfOWQ"
 
 # Configure the AI
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # --- 2. THE "BRAIN": YOUR PARAMETERS ---
 # This is the secret sauce. The user won't see this, but the AI will obey it.
