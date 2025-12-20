@@ -3,16 +3,18 @@ import google.generativeai as genai
 import json
 
 # --- 1. SETUP ---
+# We check for the key in secrets to avoid crashing if it's missing
 if "GOOGLE_API_KEY" in st.secrets:
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 else:
     st.error("Missing API Key. Please add it to .streamlit/secrets.toml")
     st.stop()
 
+# Configure the AI model
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
-# --- 2. SESSION STATE ---
+# --- 2. SESSION STATE (The App's Memory) ---
 if 'weekly_plan' not in st.session_state:
     st.session_state.weekly_plan = {}
 if 'recipes' not in st.session_state:
@@ -21,6 +23,7 @@ if 'shopping_list' not in st.session_state:
     st.session_state.shopping_list = ""
 
 # --- 3. HELPER FUNCTIONS ---
+
 def generate_week_plan(user_schedule, special_requests):
     """The Architect: Plans ONLY for the days selected."""
     system_prompt = f"""
@@ -43,6 +46,7 @@ def generate_week_plan(user_schedule, special_requests):
     """
     try:
         response = model.generate_content(system_prompt)
+        # Clean up if the AI adds markdown backticks by mistake
         clean_text = response.text.strip().replace("```json", "").replace("```", "")
         return json.loads(clean_text)
     except Exception as e:
@@ -62,6 +66,7 @@ def generate_full_recipe(meal_summary):
     return model.generate_content(prompt).text
 
 # --- 4. APP CONFIGURATION ---
+# Note: layout="centered" is better for mobile
 st.set_page_config(page_title="Dinner App", page_icon="🍽️", layout="centered")
 
 # --- 5. MAIN INTERFACE ---
@@ -82,10 +87,71 @@ with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
     
     for day in all_possible_days:
         # Create two columns per day row to save vertical space
-        # Col 1 = Checkbox (Day Name), Col 2 = Dropdown (Vibe)
         c1, c2 = st.columns([1.5, 2.5])
         
         with c1:
             # Default M-F checked
             default_check = day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-            is_active =
+            is_active = st.checkbox(day, value=default_check)
+            
+        with c2:
+            if is_active:
+                user_schedule[day] = st.selectbox(
+                    "Logistics",
+                    options=["Sprint (<20m)", "Relay (Staggered)", "Leisure (Slow)", "Takeout"],
+                    key=f"select_{day}",
+                    label_visibility="collapsed" # Hides label to make it cleaner
+                )
+
+# --- SECTION B: ACTIONS ---
+st.markdown("---") # Visual divider
+
+if st.button("🚀 PLAN SELECTED DAYS", type="primary", use_container_width=True):
+    if not user_schedule:
+        st.warning("Please select at least one day above.")
+    else:
+        with st.spinner("Chef is planning..."):
+            st.session_state.recipes = {} 
+            st.session_state.shopping_list = ""
+            plan_data = generate_week_plan(user_schedule, special_requests)
+            if plan_data:
+                st.session_state.weekly_plan = plan_data
+
+if st.session_state.weekly_plan:
+    if st.button("🛒 Create Shopping List", use_container_width=True):
+        with st.spinner("Writing list..."):
+            st.session_state.shopping_list = generate_master_shopping_list(st.session_state.weekly_plan)
+
+# --- SECTION C: RESULTS (Vertical Feed) ---
+
+# SHOPPING LIST DRAWER
+if st.session_state.shopping_list:
+    with st.expander("🛒 VIEW SHOPPING LIST", expanded=False):
+        st.markdown(st.session_state.shopping_list)
+
+# FEED
+if st.session_state.weekly_plan:
+    st.write("") # Spacer
+    
+    planned_days = list(st.session_state.weekly_plan.keys())
+    
+    for day in planned_days:
+        if "Takeout" in user_schedule.get(day, ""):
+            st.info(f"**{day}**: 🥡 Takeout Night")
+            continue
+
+        current_meal = st.session_state.weekly_plan[day]
+        
+        with st.container(border=True):
+            st.subheader(day)
+            st.caption(f"Strategy: {user_schedule.get(day)}")
+            st.markdown(f"**{current_meal}**")
+            
+            if day not in st.session_state.recipes:
+                if st.button(f"👩‍🍳 Get Recipe", key=f"btn_{day}", use_container_width=True):
+                    st.session_state.recipes[day] = generate_full_recipe(current_meal)
+                    st.rerun()
+            else:
+                st.markdown("---")
+                st.markdown("##### 📖 Recipe")
+                st.markdown(st.session_state.recipes[day])
