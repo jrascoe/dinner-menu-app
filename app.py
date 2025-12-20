@@ -24,21 +24,20 @@ if 'shopping_list' not in st.session_state:
 
 def generate_week_plan(user_schedule, special_requests):
     """
-    The Architect: Plans the week with ingredient efficiency in mind.
+    The Architect: Plans ONLY for the days selected in user_schedule.
     """
     system_prompt = f"""
     You are a smart meal planner for a PESCATARIAN family.
     
     YOUR TASK:
-    Create a cohesive meal plan for Monday - Friday.
+    Create a cohesive meal plan ONLY for the days listed in the schedule below.
     
     INPUTS:
     1. SCHEDULE: {json.dumps(user_schedule)}
     2. REQUESTS: "{special_requests}"
     
     STRATEGY - ZERO WASTE:
-    - Plan meals that share fresh ingredients (e.g., if Monday uses half a bunch of cilantro, use the rest on Thursday).
-    - Ensure ingredients are practical (don't buy a whole jar of spice for 1 tsp).
+    - Plan meals that share fresh ingredients across the selected days.
     
     DEFINITIONS:
     - "The Sprint": < 20 mins. High heat, stir fry, tacos.
@@ -47,8 +46,7 @@ def generate_week_plan(user_schedule, special_requests):
     
     OUTPUT FORMAT (JSON ONLY):
     {{
-        "Monday": "Meal Name | Prep Time | Brief Description (mentioning reused ingredients if applicable)",
-        "Tuesday": "...",
+        "DayName": "Meal Name | Prep Time | Brief Description",
         ...
     }}
     """
@@ -61,16 +59,14 @@ def generate_week_plan(user_schedule, special_requests):
         return {}
 
 def generate_master_shopping_list(plan_json):
-    """Reads the whole week and creates one organized list."""
     prompt = f"""
-    Look at this weekly meal plan: 
+    Look at this meal plan: 
     {json.dumps(plan_json)}
     
     TASK:
     Create a consolidated MASTER SHOPPING LIST.
     - Combine items (e.g. don't list 'Onion' twice, say '2 Onions').
     - Group by section (Produce, Pantry, Seafood, Dairy).
-    - Exclude common staples (Salt, Pepper, Oil).
     """
     return model.generate_content(prompt).text
 
@@ -79,46 +75,56 @@ def generate_full_recipe(meal_summary):
     return model.generate_content(prompt).text
 
 # --- 4. SIDEBAR ---
-st.set_page_config(page_title="Zero Waste Planner", page_icon="♻️", layout="wide")
+st.set_page_config(page_title="Flexible Planner", page_icon="🗓️", layout="wide")
 
 with st.sidebar:
-    st.header("♻️ Zero Waste Planner")
+    st.header("🗓️ Plan Your Week")
     st.info("🔒 Diet: **Pescatarian**")
     
     special_requests = st.text_area(
         "📝 Chef's Notes", 
-        placeholder="e.g., 'Use up the big bag of carrots', 'Impossible burgers one night'...",
+        placeholder="e.g., 'Use up the spinach', 'Impossible burgers one night'...",
         height=100
     )
     
     st.divider()
-    st.subheader("The Schedule")
-    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    st.subheader("Select Days to Plan")
+    
+    # We define the possible days, but user chooses which to activate
+    all_possible_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     user_schedule = {}
-    for day in days:
-        user_schedule[day] = st.selectbox(
-            f"{day}",
-            options=["The Sprint (Quick)", "The Relay (Staggered)", "The Leisure (Complex)", "Takeout"],
-            key=f"select_{day}"
-        )
+    
+    for day in all_possible_days:
+        # 1. The Checkbox (Default is checked for Mon-Fri, unchecked for Sat/Sun)
+        is_active = st.checkbox(day, value=(day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]))
+        
+        # 2. If checked, show the Vibe Selector
+        if is_active:
+            user_schedule[day] = st.selectbox(
+                f"{day} Logistics",
+                options=["The Sprint (Quick)", "The Relay (Staggered)", "The Leisure (Complex)", "Takeout"],
+                key=f"select_{day}"
+            )
 
 # --- 5. MAIN INTERFACE ---
-st.title("📅 The Week Ahead")
+st.title("🗓️ The Flexible Planner")
 
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    if st.button("🚀 Plan Week (Optimize Ingredients)", type="primary"):
-        with st.spinner("Chef is checking prices and expiration dates..."):
-            st.session_state.recipes = {} 
-            st.session_state.shopping_list = "" # Clear old list
-            
-            plan_data = generate_week_plan(user_schedule, special_requests)
-            if plan_data:
-                st.session_state.weekly_plan = plan_data
+    if st.button("🚀 Plan Selected Days", type="primary"):
+        if not user_schedule:
+            st.warning("Please select at least one day in the sidebar!")
+        else:
+            with st.spinner("Chef is planning..."):
+                st.session_state.recipes = {} 
+                st.session_state.shopping_list = ""
+                
+                plan_data = generate_week_plan(user_schedule, special_requests)
+                if plan_data:
+                    st.session_state.weekly_plan = plan_data
 
 with col2:
-    # Button to generate shopping list ONLY if plan exists
     if st.session_state.weekly_plan:
         if st.button("🛒 Generate Shopping List"):
             with st.spinner("Consolidating items..."):
@@ -126,38 +132,40 @@ with col2:
 
 # --- 6. DISPLAY SECTION ---
 
-# If we have a shopping list, show it at the very top (toggleable)
+# Shopping List
 if st.session_state.shopping_list:
-    with st.expander("🛒 **VIEW MASTER SHOPPING LIST**", expanded=False):
+    with st.expander("🛒 **VIEW SHOPPING LIST**", expanded=False):
         st.markdown(st.session_state.shopping_list)
 
-# Display Day Cards
+# Day Cards
 if st.session_state.weekly_plan:
     st.divider()
+    
+    # We use the keys from the PLAN, not the default list, to ensure order matches user selection
+    planned_days = list(st.session_state.weekly_plan.keys())
+    
     cols = st.columns(3)
     
-    for i, day in enumerate(days):
+    for i, day in enumerate(planned_days):
         col = cols[i % 3]
         with col:
-            if "Takeout" in user_schedule[day]:
-                st.info(f"**{day}**: 🥡 Takeout / Leftovers")
+            # Skip logic for Takeout if you want, or keep it to remind you
+            if "Takeout" in user_schedule.get(day, ""):
+                st.info(f"**{day}**: 🥡 Takeout")
                 continue
 
-            if day in st.session_state.weekly_plan:
-                current_meal = st.session_state.weekly_plan[day]
-                
-                # Card
-                container = st.container(border=True)
-                container.subheader(day)
-                container.caption(user_schedule[day])
-                container.write(current_meal)
-                
-                # Recipe Button
-                if container.button("👩‍🍳 Recipe", key=f"rec_{day}"):
-                    st.session_state.recipes[day] = generate_full_recipe(current_meal)
-                    st.rerun()
-                
-                # Show Recipe
-                if day in st.session_state.recipes:
-                    with container.expander("📖 View", expanded=True):
-                        st.markdown(st.session_state.recipes[day])
+            current_meal = st.session_state.weekly_plan[day]
+            
+            container = st.container(border=True)
+            container.subheader(day)
+            # Safe get in case day isn't in schedule (shouldn't happen but good practice)
+            container.caption(user_schedule.get(day, "Custom"))
+            container.write(current_meal)
+            
+            if container.button("👩‍🍳 Recipe", key=f"rec_{day}"):
+                st.session_state.recipes[day] = generate_full_recipe(current_meal)
+                st.rerun()
+            
+            if day in st.session_state.recipes:
+                with container.expander("📖 View", expanded=True):
+                    st.markdown(st.session_state.recipes[day])
