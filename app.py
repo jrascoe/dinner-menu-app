@@ -53,6 +53,7 @@ def generate_single_meal_fix(day, situation):
     """Regenerates just ONE day's meal."""
     prompt = f"""
     Create a single PESCATARIAN dinner idea for {day}.
+    CONTEXT: The family eats Fish, Veggies, Tofu, and Imitation Meats and has a peanut allergy.
     Logistics: {situation}.
     Format: Meal Name | Prep Time | Why it fits.
     """
