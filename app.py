@@ -3,18 +3,16 @@ import google.generativeai as genai
 import json
 
 # --- 1. SETUP ---
-# We check for the key in secrets to avoid crashing if it's missing
 if "GOOGLE_API_KEY" in st.secrets:
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 else:
     st.error("Missing API Key. Please add it to .streamlit/secrets.toml")
     st.stop()
 
-# Configure the AI model
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
-# --- 2. SESSION STATE (The App's Memory) ---
+# --- 2. SESSION STATE ---
 if 'weekly_plan' not in st.session_state:
     st.session_state.weekly_plan = {}
 if 'recipes' not in st.session_state:
@@ -23,7 +21,6 @@ if 'shopping_list' not in st.session_state:
     st.session_state.shopping_list = ""
 
 # --- 3. HELPER FUNCTIONS ---
-
 def generate_week_plan(user_schedule, special_requests):
     """The Architect: Plans ONLY for the days selected."""
     system_prompt = f"""
@@ -46,7 +43,6 @@ def generate_week_plan(user_schedule, special_requests):
     """
     try:
         response = model.generate_content(system_prompt)
-        # Clean up if the AI adds markdown backticks by mistake
         clean_text = response.text.strip().replace("```json", "").replace("```", "")
         return json.loads(clean_text)
     except Exception as e:
@@ -66,7 +62,6 @@ def generate_full_recipe(meal_summary):
     return model.generate_content(prompt).text
 
 # --- 4. APP CONFIGURATION ---
-# Note: layout="centered" is better for mobile
 st.set_page_config(page_title="Dinner App", page_icon="🍽️", layout="centered")
 
 # --- 5. MAIN INTERFACE ---
@@ -74,7 +69,6 @@ st.set_page_config(page_title="Dinner App", page_icon="🍽️", layout="centere
 st.title("🍽️ Dinner Plans")
 
 # --- SECTION A: SETUP (Stacked at Top) ---
-# We use an expander that defaults to expanded=True so it's visible on load
 with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
     st.info("Diet: **Pescatarian**")
     
@@ -86,11 +80,9 @@ with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
     user_schedule = {}
     
     for day in all_possible_days:
-        # Create two columns per day row to save vertical space
         c1, c2 = st.columns([1.5, 2.5])
         
         with c1:
-            # Default M-F checked
             default_check = day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
             is_active = st.checkbox(day, value=default_check)
             
@@ -100,11 +92,11 @@ with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
                     "Logistics",
                     options=["Sprint (<20m)", "Relay (Staggered)", "Leisure (Slow)", "Takeout"],
                     key=f"select_{day}",
-                    label_visibility="collapsed" # Hides label to make it cleaner
+                    label_visibility="collapsed"
                 )
 
 # --- SECTION B: ACTIONS ---
-st.markdown("---") # Visual divider
+st.markdown("---") 
 
 if st.button("🚀 PLAN SELECTED DAYS", type="primary", use_container_width=True):
     if not user_schedule:
@@ -128,10 +120,12 @@ if st.session_state.weekly_plan:
 if st.session_state.shopping_list:
     with st.expander("🛒 VIEW SHOPPING LIST", expanded=False):
         st.markdown(st.session_state.shopping_list)
+        st.caption("Copy list below:")
+        st.code(st.session_state.shopping_list, language=None)
 
 # FEED
 if st.session_state.weekly_plan:
-    st.write("") # Spacer
+    st.write("") 
     
     planned_days = list(st.session_state.weekly_plan.keys())
     
@@ -155,3 +149,9 @@ if st.session_state.weekly_plan:
                 st.markdown("---")
                 st.markdown("##### 📖 Recipe")
                 st.markdown(st.session_state.recipes[day])
+                
+                # --- THE NEW COPY FEATURE ---
+                st.divider()
+                st.caption("👇 Tap icon in top-right to copy recipe")
+                # We use st.code with language=None so it treats it as plain text
+                st.code(st.session_state.recipes[day], language=None)
