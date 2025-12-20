@@ -33,7 +33,7 @@ def generate_week_plan(user_schedule, special_requests):
     
     STRATEGY:
     - Plan meals that share fresh ingredients across the selected days.
-    - Ensure strictly Pescatarian (Fish/Veggie) meals.
+    - Ensure strictly Pescatarian (Fish/Veggie/Tofu/Imitation Meat) meals.
     
     OUTPUT FORMAT (JSON ONLY):
     {{
@@ -78,13 +78,13 @@ st.set_page_config(page_title="Dinner App", page_icon="🍽️", layout="centere
 
 # --- 5. MAIN INTERFACE ---
 
-st.title("🍽️ Dinner Plans")
+st.title("🍽️ Lauren's Dinner Planner")
 
 # --- SECTION A: SETUP ---
 with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
     st.info("Diet: **Pescatarian**")
     
-    special_requests = st.text_area("📝 Chef's Notes", height=70, placeholder="e.g. Impossible burgers one night")
+    special_requests = st.text_area("📝 Chef's Notes", height=70, placeholder="e.g. Pasta dish one night")
     
     st.markdown("##### Schedule")
     
