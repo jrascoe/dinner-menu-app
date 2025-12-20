@@ -5,7 +5,7 @@ import google.generativeai as genai
 
 # PASTE YOUR API KEY HERE (Keep the quotes!)
 # In a real deployed app, we would hide this, but for running locally this works.
-GOOGLE_API_KEY = AIzaSyASNdWnyVy3P5YRvOtkOBtFwpoFrRIfOWQ 
+GOOGLE_API_KEY = "AIzaSyASNdWnyVy3P5YRvOtkOBtFwpoFrRIfOWQ" 
 
 # Configure the AI
 genai.configure(api_key=GOOGLE_API_KEY)
