@@ -35,6 +35,11 @@ def generate_week_plan(user_schedule, special_requests):
     - Plan meals that share fresh ingredients across the selected days.
     - Ensure strictly Pescatarian (Fish/Veggie/Tofu/Imitation Meat) meals.
     
+    LOGISTICS DEFINITIONS:
+    - "The Sprint": < 20 mins prep. High heat, stir fry, sheet pan, tacos.
+    - "The Relay": CROCKPOT / SLOW COOKER FOCUS. Meals that sit on 'Keep Warm' for hours without ruining. Think Chilis, Stews, Curries, heavy Soups.
+    - "The Leisure": Complex cooking allowed. Risottos, multi-step bakes.
+    
     OUTPUT FORMAT (JSON ONLY):
     {{
         "DayName": "Meal Name | Prep Time | Brief Description",
