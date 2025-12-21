@@ -90,7 +90,6 @@ st.title("🍽️ Lauren's Dinner Planner")
 
 # --- SECTION A: SETUP ---
 with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
-    # This line must be indented so it sits INSIDE the expander
     st.info("Diet: 🐟 **Pescatarian** | 🚫 **Peanut-Free**")
     
     special_requests = st.text_area("📝 Chef's Notes", height=70, placeholder="e.g. Pasta dish one night")
@@ -111,7 +110,7 @@ with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
             if is_active:
                 user_schedule[day] = st.selectbox(
                     "Logistics",
-                    options=["Sprint (<20m)", "Relay (Staggered)", "Leisure (Slow)", "Takeout"],
+                    options=["Sprint (<20m)", "Relay (Staggered)", "Leisure (Slow)", "Takeout / Dine Out"],
                     key=f"select_{day}",
                     label_visibility="collapsed"
                 )
@@ -150,10 +149,12 @@ if st.session_state.weekly_plan:
     
     planned_days = list(st.session_state.weekly_plan.keys())
     
-    for day in planned_days:
+for day in planned_days:
         if "Takeout" in user_schedule.get(day, ""):
-            st.info(f"**{day}**: 🥡 Takeout Night")
+            st.info(f"**{day}**: 🥡 Takeout / Dine Out")
             continue
+
+        current_meal = st.session_state.weekly_plan[day]
 
         current_meal = st.session_state.weekly_plan[day]
         
