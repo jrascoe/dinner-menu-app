@@ -88,6 +88,11 @@ st.set_page_config(page_title="Dinner App", page_icon="🍽️", layout="centere
 
 st.title("🍽️ Lauren's Dinner Planner")
 
+# --- DEBUGGING: THE TRUTH TEST ---
+import google.generativeai as genai
+st.warning(f"Current Google Version: {genai.__version__}")
+# ---------------------------------
+
 # --- SECTION A: SETUP ---
 with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
     st.info("Diet: 🐟 **Pescatarian** | 🚫 **Peanut-Free**")
