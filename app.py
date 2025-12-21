@@ -90,8 +90,9 @@ st.title("🍽️ Lauren's Dinner Planner")
 
 # --- SECTION A: SETUP ---
 with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
-st.info("Diet: 🐟 **Pescatarian** | 🚫 **Peanut-Free**")
-
+    # This line must be indented so it sits INSIDE the expander
+    st.info("Diet: 🐟 **Pescatarian** | 🚫 **Peanut-Free**")
+    
     special_requests = st.text_area("📝 Chef's Notes", height=70, placeholder="e.g. Pasta dish one night")
     
     st.markdown("##### Schedule")
