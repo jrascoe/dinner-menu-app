@@ -10,7 +10,7 @@ else:
     st.stop()
 
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- 2. SESSION STATE ---
 if 'weekly_plan' not in st.session_state:
@@ -34,7 +34,8 @@ def generate_week_plan(user_schedule, special_requests):
     STRATEGY:
     - Plan meals that share fresh ingredients across the selected days.
     - Ensure strictly Pescatarian (Fish/Veggie/Tofu/Imitation Meat) meals.
-    
+    - CRITICAL SAFETY: STRICTLY NO PEANUTS OR PEANUT PRODUCTS.
+        
     LOGISTICS DEFINITIONS:
     - "The Sprint": < 20 mins prep. High heat, stir fry, sheet pan, tacos.
     - "The Relay": CROCKPOT / SLOW COOKER FOCUS. Meals that sit on 'Keep Warm' for hours without ruining. Think Chilis, Stews, Curries, heavy Soups.
@@ -58,7 +59,8 @@ def generate_single_meal_fix(day, situation):
     """Regenerates just ONE day's meal."""
     prompt = f"""
     Create a single PESCATARIAN dinner idea for {day}.
-    CONTEXT: The family eats Fish, Veggies, Tofu, and Imitation Meats and has a peanut allergy.
+    CONTEXT: The family eats Fish, Veggies, Tofu, and Imitation Meats.
+    SAFETY: STRICTLY NO PEANUTS.
     Logistics: {situation}.
     Format: Meal Name | Prep Time | Why it fits.
     """
@@ -88,8 +90,8 @@ st.title("🍽️ Lauren's Dinner Planner")
 
 # --- SECTION A: SETUP ---
 with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
-    st.info("Diet: **Pescatarian**")
-    
+st.info("Diet: 🐟 **Pescatarian** | 🚫 **Peanut-Free**")
+
     special_requests = st.text_area("📝 Chef's Notes", height=70, placeholder="e.g. Pasta dish one night")
     
     st.markdown("##### Schedule")
