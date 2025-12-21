@@ -149,12 +149,12 @@ if st.session_state.weekly_plan:
     
     planned_days = list(st.session_state.weekly_plan.keys())
     
-for day in planned_days:
+    # CRITICAL FIX: This loop is now indented so it only runs if a plan exists
+    for day in planned_days:
+        # Check for the new "Takeout / Dine Out" label
         if "Takeout" in user_schedule.get(day, ""):
             st.info(f"**{day}**: 🥡 Takeout / Dine Out")
             continue
-
-        current_meal = st.session_state.weekly_plan[day]
 
         current_meal = st.session_state.weekly_plan[day]
         
@@ -177,7 +177,6 @@ for day in planned_days:
                     st.rerun()
 
             # 2. RECIPE BUTTON
-            # If no recipe loaded, show "Get Recipe"
             if day not in st.session_state.recipes:
                 if col_recipe.button(f"👩‍🍳 Recipe", key=f"btn_{day}", use_container_width=True):
                     st.session_state.recipes[day] = generate_full_recipe(current_meal)
