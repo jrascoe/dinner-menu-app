@@ -10,7 +10,7 @@ else:
     st.stop()
 
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 # --- 2. SESSION STATE ---
 if 'weekly_plan' not in st.session_state:
@@ -88,15 +88,6 @@ st.set_page_config(page_title="Dinner App", page_icon="🍽️", layout="centere
 
 st.title("🍽️ Lauren's Dinner Planner")
 
-# --- DEBUGGING: PRINT THE MENU ---
-import google.generativeai as genai
-if st.checkbox("🔍 Show Available Models"):
-    try:
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                st.write(f"- `{m.name}`")
-    except Exception as e:
-        st.error(f"Error listing models: {e}")
 
 # --- SECTION A: SETUP ---
 with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
