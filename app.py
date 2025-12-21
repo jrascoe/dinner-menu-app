@@ -10,7 +10,7 @@ else:
     st.stop()
 
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- 2. SESSION STATE ---
 if 'weekly_plan' not in st.session_state:
