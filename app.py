@@ -88,10 +88,15 @@ st.set_page_config(page_title="Dinner App", page_icon="🍽️", layout="centere
 
 st.title("🍽️ Lauren's Dinner Planner")
 
-# --- DEBUGGING: THE TRUTH TEST ---
+# --- DEBUGGING: PRINT THE MENU ---
 import google.generativeai as genai
-st.warning(f"Current Google Version: {genai.__version__}")
-# ---------------------------------
+if st.checkbox("🔍 Show Available Models"):
+    try:
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                st.write(f"- `{m.name}`")
+    except Exception as e:
+        st.error(f"Error listing models: {e}")
 
 # --- SECTION A: SETUP ---
 with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
