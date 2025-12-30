@@ -97,7 +97,7 @@ with st.expander("⚙️ WEEKLY SETUP (Click to Hide/Show)", expanded=True):
     
     st.markdown("##### Schedule")
     
-    all_possible_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    all_possible_days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     user_schedule = {}
     
     for day in all_possible_days:
